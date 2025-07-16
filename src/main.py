@@ -1,5 +1,5 @@
 def main():
-    print('Algorithmic Trading Bot is running!')
+    print("Algorithmic Trading Bot is running!")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    main() 

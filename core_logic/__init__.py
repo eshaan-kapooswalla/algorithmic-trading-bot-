@@ -1,0 +1,1 @@
+# core_logic package for main trading bot logic 
