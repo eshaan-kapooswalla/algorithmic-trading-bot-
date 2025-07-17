@@ -62,6 +62,13 @@ algorithmic-trading-bot/
    python core_logic/client.py
    ```
 
+## Data Processing & Technical Indicators
+
+- The `utils/helpers.py` module now includes:
+  - `klines_to_dataframe`: Converts raw Binance kline data (list of lists) to a pandas DataFrame with proper columns and types.
+  - `add_indicators`: Adds common technical indicators (SMA, EMA, RSI) to a DataFrame using the `pandas-ta` library.
+- Ensure you have `pandas-ta` installed (see requirements.txt).
+
 ---
 
 ## 🛡️ Security & Best Practices
