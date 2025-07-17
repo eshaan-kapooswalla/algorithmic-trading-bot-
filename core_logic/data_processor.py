@@ -7,6 +7,7 @@ Pandas DataFrame. This forms the foundation for all subsequent technical analysi
 feature engineering, and strategy development.
 """
 import pandas as pd  # type: ignore
+import pandas_ta as ta  # type: ignore
 
 # It's a best practice to define the column structure from the API documentation.
 # https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md#klinecandlestick-data
@@ -58,29 +59,38 @@ def create_dataframe_from_klines(klines: list) -> pd.DataFrame:
     # Select only the essential columns.
     df = df[ESSENTIAL_COLUMNS]
     
-    # --- NEW: Data Type Conversion ---
-
     # 1. Convert price and volume columns to numeric types.
-    # We use a loop for cleaner code. `pd.to_numeric` converts string to number.
-    # `errors='coerce'` will turn any values that can't be converted into NaN (Not a Number).
     numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
     # 2. Convert the timestamp from milliseconds (as provided by Binance) to a datetime object.
-    # The `unit='ms'` is crucial for correct conversion from the Unix epoch time.
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
 
     # 3. Set the 'Timestamp' column as the index of the DataFrame.
-    # An index is a special column that allows for fast lookups and is essential for time-series analysis.
     df = df.set_index('Timestamp')
     
     print(f"Successfully processed {len(df)} k-lines. DataFrame is now indexed by Timestamp.")
     return df
 
-# A self-test block to verify the functionality of this module.
+# --- NEW FUNCTION ---
+def add_sma(df: pd.DataFrame, period: int = 50) -> pd.DataFrame:
+    """
+    Calculates the Simple Moving Average (SMA) and adds it as a new column.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame with at least a 'Close' column.
+        period (int): The lookback period for the SMA calculation. Defaults to 50.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the new 'SMA_{period}' column added.
+    """
+    print(f"Calculating {period}-period SMA...")
+    df.ta.sma(length=period, append=True)
+    print("SMA calculation complete.")
+    return df
+
 if __name__ == '__main__':
-    # We need to import our client functions to get some test data
     from core_logic.client import get_binance_client, get_historical_data, test_connection
     from binance.client import Client  # type: ignore
     from binance.exceptions import BinanceAPIException  # type: ignore
@@ -88,24 +98,29 @@ if __name__ == '__main__':
     try:
         # 1. Get some real data to process
         client = get_binance_client()
+        # Fetch more data to ensure we have enough for a 50-period SMA
         klines_data = get_historical_data(
             client=client,
             symbol='BTCUSDT',
             interval=Client.KLINE_INTERVAL_1HOUR,
-            start_str="2 days ago UTC"
+            start_str="5 days ago UTC"
         )
 
-        # 2. Pass the raw data to our function
         if klines_data:
+            # 2. Process the raw data into a clean DataFrame
             df = create_dataframe_from_klines(klines_data)
 
-            # 3. Inspect the result
-            print("\n--- Processed DataFrame Head ---")
-            print(df.head())
+            # 3. Add the SMA indicator to our DataFrame
+            df_with_sma = add_sma(df, period=50)
 
-            print("\n--- Processed DataFrame Info ---")
-            # .info() will now show a DatetimeIndex and numeric Dtypes, confirming our success!
-            df.info()
+            # 4. Inspect the result
+            print("\n--- DataFrame with SMA ---")
+            # Using .tail() is more useful here to see the calculated SMA values
+            print(df_with_sma.tail(10))
+
+            print("\n--- Verifying NaN values at the beginning ---")
+            # .head() will show NaN for the SMA column, as expected.
+            print(df_with_sma.head(5))
 
     except (ValueError, BinanceAPIException, Exception) as e:
         print(f"An error occurred during the test run: {e}") 
