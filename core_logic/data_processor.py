@@ -90,6 +90,24 @@ def add_sma(df: pd.DataFrame, period: int = 50) -> pd.DataFrame:
     print("SMA calculation complete.")
     return df
 
+def add_ema(df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    """
+    Calculates the Exponential Moving Average (EMA) and adds it as a new column.
+
+    The EMA gives more weight to recent prices, making it more responsive than the SMA.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame with at least a 'Close' column.
+        period (int): The lookback period for the EMA calculation. Defaults to 20.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the new 'EMA_{period}' column added.
+    """
+    print(f"Calculating {period}-period EMA...")
+    df.ta.ema(length=period, append=True)
+    print("EMA calculation complete.")
+    return df
+
 if __name__ == '__main__':
     from core_logic.client import get_binance_client, get_historical_data, test_connection
     from binance.client import Client  # type: ignore
@@ -98,7 +116,6 @@ if __name__ == '__main__':
     try:
         # 1. Get some real data to process
         client = get_binance_client()
-        # Fetch more data to ensure we have enough for a 50-period SMA
         klines_data = get_historical_data(
             client=client,
             symbol='BTCUSDT',
@@ -110,17 +127,13 @@ if __name__ == '__main__':
             # 2. Process the raw data into a clean DataFrame
             df = create_dataframe_from_klines(klines_data)
 
-            # 3. Add the SMA indicator to our DataFrame
-            df_with_sma = add_sma(df, period=50)
+            # 3. Add the indicators to our DataFrame
+            df = add_sma(df, period=50)
+            df = add_ema(df, period=20)
 
             # 4. Inspect the result
-            print("\n--- DataFrame with SMA ---")
-            # Using .tail() is more useful here to see the calculated SMA values
-            print(df_with_sma.tail(10))
-
-            print("\n--- Verifying NaN values at the beginning ---")
-            # .head() will show NaN for the SMA column, as expected.
-            print(df_with_sma.head(5))
+            print("\n--- DataFrame with SMA and EMA ---")
+            print(df.tail(10))
 
     except (ValueError, BinanceAPIException, Exception) as e:
         print(f"An error occurred during the test run: {e}") 
